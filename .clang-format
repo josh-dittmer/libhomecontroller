@@ -1,0 +1,4 @@
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+IndentWidth: 4
+AccessModifierOffset: -2
