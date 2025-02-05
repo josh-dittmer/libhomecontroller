@@ -13,7 +13,8 @@ OBJECTDIR = $(BINARYDIR)/obj
 TARGETNAME = libhomecontroller.so
 TARGET = $(BINARYDIR)/$(TARGETNAME)
 
-#LIBS += -lssl
+LIBS += -lssl
+LIBS += -lcrypto
 
 LIBINSTALLDIR = /usr/local/lib
 INCINSTALLDIR = /usr/local/include
@@ -54,6 +55,7 @@ $(OBJECTDIR):
 install: $(TARGET)
 	cp -r $(INCDIR)/$(INCDIRNAME) $(INCINSTALLDIR)
 	cp $(TARGET) $(LIBINSTALLDIR)/$(TARGETNAME)
+	ldconfig
 
 uninstall:
 	rm -r $(INCINSTALLDIR)/$(INCDIRNAME)

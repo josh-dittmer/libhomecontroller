@@ -1,5 +1,7 @@
 #pragma once
 
+#define SIO_TLS 1
+
 #include "homecontroller/util/logger.h"
 
 #include <condition_variable>
