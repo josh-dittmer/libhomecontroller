@@ -39,6 +39,9 @@ _HEADERS += socket.io/client.h
 _OBJECTS += util/logger.o
 _HEADERS += util/logger.h
 
+_OBJECTS += util/string.o
+_HEADERS += util/string.h
+
 OBJECTS = $(patsubst %,$(OBJECTDIR)/%,$(_OBJECTS))
 HEADERS = $(patsubst %,$(INCDIR)/$(INCDIRNAME)/%,$(_HEADERS))
 

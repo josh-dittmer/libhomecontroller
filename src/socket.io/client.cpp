@@ -122,13 +122,7 @@ void Client::on_open() {
     for (auto& x : m_events) {
         ::sio::socket::event_listener cb = [&, this](::sio::event& event) {
             m_logger.verbose("Received event: [" + event.get_name() + "]");
-
-            try {
-                x.second(event.get_message());
-            } catch (std::exception& e) {
-                m_logger.error("Event handler failed: " +
-                               std::string(e.what()));
-            }
+            x.second(event.get_message());
         };
 
         m_logger.verbose("Registered event [" + x.first + "]");
