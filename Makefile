@@ -31,6 +31,13 @@ _HEADERS += api/device.h
 _OBJECTS += api/device_data/rgb_lights.o
 _HEADERS += api/device_data/rgb_lights.h
 
+# bt
+_OBJECTS += bt/bluez_connection.o
+_HEADERS += bt/bluez_connection.h
+
+_OBJECTS += bt/device.o
+_HEADERS += bt/device.h
+
 # socket.io
 _OBJECTS += socket.io/client.o
 _HEADERS += socket.io/client.h
