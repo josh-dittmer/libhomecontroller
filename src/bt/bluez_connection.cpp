@@ -46,10 +46,16 @@ BlueZConnection::get_device(const std::string& address) {
     m_logger.verbose("Attempting connection to Bluetooth device [" + address +
                      "]...");
 
-    proxy_ptr->callMethod("Connect")
-        .onInterface(iface_name)
-        .withTimeout(std::chrono::milliseconds(10000));
+    try {
+        proxy_ptr->callMethod("Connect")
+            .onInterface(iface_name)
+            .withTimeout(std::chrono::milliseconds(10000));
+    } catch (sdbus::Error& e) {
+        m_logger.error("Failed to connect to device!");
+        m_logger.error("[" + e.getName() + "]: " + e.getMessage());
 
+        return nullptr;
+    }
     m_logger.verbose("Successfully connected to [" + address + "]!");
 
     return std::make_shared<Device>();
