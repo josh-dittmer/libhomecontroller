@@ -37,8 +37,9 @@ BlueZConnection::get_device(const std::string& address) {
 
     // for org.bluez.Device
     sdbus::ServiceName destination{"org.bluez"};
-    sdbus::ObjectPath object_path{object_path_str};
-    sdbus::InterfaceName iface_name{"org.bluez.Device1"};
+    // sdbus::ObjectPath object_path{object_path_str};
+    sdbus::ObjectPath object_path{"/org/bluez/hci0"};
+    sdbus::InterfaceName iface_name{"org.bluez.Adapter1"};
 
     std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
         *m_conn_ptr, std::move(destination), std::move(object_path));
@@ -47,7 +48,7 @@ BlueZConnection::get_device(const std::string& address) {
                      "]...");
 
     try {
-        proxy_ptr->callMethod("Connect")
+        proxy_ptr->callMethod("StartDiscovery")
             .onInterface(iface_name)
             .withTimeout(std::chrono::milliseconds(10000));
     } catch (sdbus::Error& e) {
