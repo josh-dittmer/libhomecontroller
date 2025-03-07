@@ -10,9 +10,9 @@ namespace bt {
 void BlueZConnection::start() {
     m_conn_ptr = sdbus::createSystemBusConnection();
     m_conn_ptr->enterEventLoopAsync();
-    
+
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    
+
     // for org.bluez.Adapter
     sdbus::ServiceName destination{"org.bluez"};
     sdbus::ObjectPath object_path{
@@ -48,6 +48,8 @@ void BlueZConnection::start() {
         .onInterface("org.bluez.Adapter1")
         .dontExpectReply();
     m_logger.verbose("Successfully started device discovery!");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(20000));
 
     m_connected = true;
 }
