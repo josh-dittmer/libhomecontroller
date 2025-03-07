@@ -9,26 +9,22 @@ namespace bt {
 
 void BlueZConnection::start() {
     m_conn_ptr = sdbus::createSystemBusConnection();
-    m_conn_ptr->enterEventLoopAsync();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // for org.bluez.Adapter
     sdbus::ServiceName destination{"org.bluez"};
     sdbus::ObjectPath object_path{
         "/org/bluez/hci0"}; // should be found in runtime
 
-    m_proxy_ptr = sdbus::createProxy(*m_conn_ptr, std::move(destination),
-                                     std::move(object_path));
+    std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(*m_conn_ptr, std::move(destination), std::move(object_path));
 
     // enable adapter
 
-    m_proxy_ptr->setProperty("Powered")
+    proxy_ptr->setProperty("Powered")
         .onInterface("org.bluez.Adapter1")
         .toValue(true);
     m_logger.verbose("Successfully enabled Bluetooth adapter!");
 
-    /*proxy_ptr->uponSignal("InterfacesAdded")
+    /*proxy_ptr->uponSignal("InterfacesAddedd")
         .onInterface("org.freedesktop.DBus.ObjectManager")
         .call([](const sdbus::ObjectPath& object_path,
                  const std::map<std::string,
@@ -40,16 +36,18 @@ void BlueZConnection::start() {
 
     sdbus::InterfaceName iface_name{"org.freedesktop.DBus.ObjectManager"};
     sdbus::SignalName signal_name{"InterfacesAdded"};
-    m_proxy_ptr->registerSignalHandler(
+    proxy_ptr->registerSignalHandler(
         iface_name, signal_name,
         [](sdbus::Signal signal) { std::cout << "test" << std::endl; });
 
-    m_proxy_ptr->callMethod("StartDiscovery")
-        .onInterface("org.bluez.Adapter1")
-        .dontExpectReply();
+    proxy_ptr->callMethod("StartDiscovery")
+        .onInterface("org.bluez.Adapter1");
     m_logger.verbose("Successfully started device discovery!");
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(20000));
+  
+    m_conn_ptr->enterEventLoopAsync();
+    /*while(true) {
+        m_conn_ptr->processPendingEvent();
+    }*/
 
     m_connected = true;
 }
