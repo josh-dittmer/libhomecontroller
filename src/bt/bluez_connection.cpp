@@ -2,13 +2,17 @@
 
 #include <algorithm>
 #include <iostream>
+#include <thread>
 
 namespace hc {
 namespace bt {
 
 void BlueZConnection::start() {
     m_conn_ptr = sdbus::createSystemBusConnection();
-
+    m_conn_ptr->enterEventLoopAsync();
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    
     // for org.bluez.Adapter
     sdbus::ServiceName destination{"org.bluez"};
     sdbus::ObjectPath object_path{
@@ -24,7 +28,7 @@ void BlueZConnection::start() {
         .toValue(true);
     m_logger.verbose("Successfully enabled Bluetooth adapter!");
 
-    proxy_ptr->uponSignal("InterfacesAdded")
+    /*proxy_ptr->uponSignal("InterfacesAdded")
         .onInterface("org.freedesktop.DBus.ObjectManager")
         .call([](const sdbus::ObjectPath& object_path,
                  const std::map<std::string,
@@ -32,7 +36,7 @@ void BlueZConnection::start() {
                      interfaces) {
             // m_logger.verbose("TESTING TESTING 123");
             std::cout << "test" << std::endl;
-        });
+        });*/
 
     sdbus::InterfaceName iface_name{"org.freedesktop.DBus.ObjectManager"};
     sdbus::SignalName signal_name{"InterfacesAdded"};
@@ -44,8 +48,6 @@ void BlueZConnection::start() {
         .onInterface("org.bluez.Adapter1")
         .dontExpectReply();
     m_logger.verbose("Successfully started device discovery!");
-
-    m_conn_ptr->enterEventLoop();
 
     m_connected = true;
 }
