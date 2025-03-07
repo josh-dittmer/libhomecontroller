@@ -23,6 +23,7 @@ class BlueZConnection {
     util::Logger m_logger;
 
     std::unique_ptr<sdbus::IConnection> m_conn_ptr;
+    std::unique_ptr<sdbus::IProxy> m_proxy_ptr;
 
     bool m_connected;
 };

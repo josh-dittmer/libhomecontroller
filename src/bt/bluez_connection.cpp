@@ -18,12 +18,12 @@ void BlueZConnection::start() {
     sdbus::ObjectPath object_path{
         "/org/bluez/hci0"}; // should be found in runtime
 
-    std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
-        *m_conn_ptr, std::move(destination), std::move(object_path));
+    m_proxy_ptr = sdbus::createProxy(*m_conn_ptr, std::move(destination),
+                                     std::move(object_path));
 
     // enable adapter
 
-    proxy_ptr->setProperty("Powered")
+    m_proxy_ptr->setProperty("Powered")
         .onInterface("org.bluez.Adapter1")
         .toValue(true);
     m_logger.verbose("Successfully enabled Bluetooth adapter!");
@@ -40,11 +40,11 @@ void BlueZConnection::start() {
 
     sdbus::InterfaceName iface_name{"org.freedesktop.DBus.ObjectManager"};
     sdbus::SignalName signal_name{"InterfacesAdded"};
-    proxy_ptr->registerSignalHandler(
+    m_proxy_ptr->registerSignalHandler(
         iface_name, signal_name,
         [](sdbus::Signal signal) { std::cout << "test" << std::endl; });
 
-    proxy_ptr->callMethod("StartDiscovery")
+    m_proxy_ptr->callMethod("StartDiscovery")
         .onInterface("org.bluez.Adapter1")
         .dontExpectReply();
     m_logger.verbose("Successfully started device discovery!");
@@ -56,7 +56,7 @@ void BlueZConnection::start() {
 
 std::shared_ptr<Device>
 BlueZConnection::get_device(const std::string& address) {
-    static const std::string ADAPTER_PATH = "/org/bluez/hci0";
+    /*static const std::string ADAPTER_PATH = "/org/bluez/hci0";
     static const int CONNECTION_TIMEOUT = 10000;
 
     std::string formatted_addr = address;
@@ -74,7 +74,7 @@ BlueZConnection::get_device(const std::string& address) {
         *m_conn_ptr, std::move(destination), std::move(object_path));
 
     m_logger.verbose("Attempting connection to Bluetooth device [" + address +
-                     "]...");
+                     "]...");*/
 
     /*try {
         proxy_ptr->callMethod("Connect")
