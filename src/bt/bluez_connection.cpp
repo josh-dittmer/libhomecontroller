@@ -1,6 +1,7 @@
 #include "homecontroller/bt/bluez_connection.h"
 
 #include <algorithm>
+#include <iostream>
 
 namespace hc {
 namespace bt {
@@ -23,20 +24,25 @@ void BlueZConnection::start() {
         .toValue(true);
     m_logger.verbose("Successfully enabled Bluetooth adapter!");
 
-    proxy_ptr->uponSignal("InterfacesAdded")
+    /*proxy_ptr->uponSignal("InterfacesAdded")
         .onInterface("org.freedesktop.DBus.ObjectManager")
-        .call([&](sdbus::Variant& params) {
-            m_logger.verbose("TESTING TESTING 123");
-        });
+        .call([](const sdbus::ObjectPath& object_path, const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfaces) {
+           // m_logger.verbose("TESTING TESTING 123");
+           std::cout << "test" << std::endl;
+    });*/
+
+    proxy_ptr->registerSignalHandler("org.freedesktop.DBus.ObjectManager", "InterfacesAdded", [](sdbus::Signal signal) {
+            std::cout << "test" << std::endl;
+    });
 
     proxy_ptr->callMethod("StartDiscovery")
         .onInterface("org.bluez.Adapter1")
         .dontExpectReply();
     m_logger.verbose("Successfully started device discovery!");
 
-    m_connected = true;
+    m_conn_ptr->enterEventLoop();
 
-    m_logger.verbose("Successfully enabled Bluetooth adapter!");
+    m_connected = true;
 }
 
 std::shared_ptr<Device>
@@ -61,7 +67,7 @@ BlueZConnection::get_device(const std::string& address) {
     m_logger.verbose("Attempting connection to Bluetooth device [" + address +
                      "]...");
 
-    try {
+    /*try {
         proxy_ptr->callMethod("Connect")
             .onInterface(iface_name)
             .withTimeout(std::chrono::milliseconds(10000));
@@ -70,7 +76,7 @@ BlueZConnection::get_device(const std::string& address) {
         m_logger.error("[" + e.getName() + "]: " + e.getMessage());
 
         return nullptr;
-    }
+    }*/
     m_logger.verbose("Successfully connected to [" + address + "]!");
 
     return std::make_shared<Device>();
