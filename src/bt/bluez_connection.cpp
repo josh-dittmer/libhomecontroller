@@ -24,16 +24,21 @@ void BlueZConnection::start() {
         .toValue(true);
     m_logger.verbose("Successfully enabled Bluetooth adapter!");
 
-    /*proxy_ptr->uponSignal("InterfacesAdded")
+    proxy_ptr->uponSignal("InterfacesAdded")
         .onInterface("org.freedesktop.DBus.ObjectManager")
-        .call([](const sdbus::ObjectPath& object_path, const std::map<std::string, std::map<std::string, sdbus::Variant>>& interfaces) {
-           // m_logger.verbose("TESTING TESTING 123");
-           std::cout << "test" << std::endl;
-    });*/
-
-    proxy_ptr->registerSignalHandler("org.freedesktop.DBus.ObjectManager", "InterfacesAdded", [](sdbus::Signal signal) {
+        .call([](const sdbus::ObjectPath& object_path,
+                 const std::map<std::string,
+                                std::map<std::string, sdbus::Variant>>&
+                     interfaces) {
+            // m_logger.verbose("TESTING TESTING 123");
             std::cout << "test" << std::endl;
-    });
+        });
+
+    sdbus::InterfaceName iface_name{"org.freedesktop.DBus.ObjectManager"};
+    sdbus::SignalName signal_name{"InterfacesAdded"};
+    proxy_ptr->registerSignalHandler(
+        iface_name, signal_name,
+        [](sdbus::Signal signal) { std::cout << "test" << std::endl; });
 
     proxy_ptr->callMethod("StartDiscovery")
         .onInterface("org.bluez.Adapter1")
