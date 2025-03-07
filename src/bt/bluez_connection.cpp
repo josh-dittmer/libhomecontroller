@@ -12,13 +12,27 @@ void BlueZConnection::start() {
     sdbus::ServiceName destination{"org.bluez"};
     sdbus::ObjectPath object_path{
         "/org/bluez/hci0"}; // should be found in runtime
-    sdbus::InterfaceName iface_name{"org.bluez.Adapter1"};
 
     std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
         *m_conn_ptr, std::move(destination), std::move(object_path));
 
     // enable adapter
-    proxy_ptr->setProperty("Powered").onInterface(iface_name).toValue(true);
+
+    proxy_ptr->setProperty("Powered")
+        .onInterface("org.bluez.Adapter1")
+        .toValue(true);
+    m_logger.verbose("Successfully enabled Bluetooth adapter!");
+
+    proxy_ptr->uponSignal("InterfacesAdded")
+        .onInterface("org.freedesktop.DBus.ObjectManager")
+        .call([&](sdbus::Variant& params) {
+            m_logger.verbose("TESTING TESTING 123");
+        });
+
+    proxy_ptr->callMethod("StartDiscovery")
+        .onInterface("org.bluez.Adapter1")
+        .dontExpectReply();
+    m_logger.verbose("Successfully started device discovery!");
 
     m_connected = true;
 
@@ -37,9 +51,9 @@ BlueZConnection::get_device(const std::string& address) {
 
     // for org.bluez.Device
     sdbus::ServiceName destination{"org.bluez"};
-    // sdbus::ObjectPath object_path{object_path_str};
-    sdbus::ObjectPath object_path{"/org/bluez/hci0"};
-    sdbus::InterfaceName iface_name{"org.bluez.Adapter1"};
+    sdbus::ObjectPath object_path{object_path_str};
+    // sdbus::ObjectPath object_path{"/org/bluez/hci0"};
+    sdbus::InterfaceName iface_name{"org.bluez.Device1"};
 
     std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
         *m_conn_ptr, std::move(destination), std::move(object_path));
@@ -48,7 +62,7 @@ BlueZConnection::get_device(const std::string& address) {
                      "]...");
 
     try {
-        proxy_ptr->callMethod("StartDiscovery")
+        proxy_ptr->callMethod("Connect")
             .onInterface(iface_name)
             .withTimeout(std::chrono::milliseconds(10000));
     } catch (sdbus::Error& e) {
