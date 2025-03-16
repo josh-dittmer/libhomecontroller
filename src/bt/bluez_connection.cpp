@@ -15,7 +15,8 @@ void BlueZConnection::start() {
     sdbus::ObjectPath object_path{
         "/org/bluez/hci0"}; // should be found in runtime
 
-    std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(*m_conn_ptr, std::move(destination), std::move(object_path));
+    std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
+        *m_conn_ptr, std::move(destination), std::move(object_path));
 
     // enable adapter
 
@@ -32,32 +33,35 @@ void BlueZConnection::start() {
                      interfaces) {
             // m_logger.verbose("TESTING TESTING 123");
             std::cout << "test" << std::endl;
-        });*/ 
-    
+        });*/
+
     {
         sdbus::ServiceName destination2{"org.bluez"};
         sdbus::ObjectPath object_path2{"/"};
-        std::unique_ptr<sdbus::IProxy> test = sdbus::createProxy(*m_conn_ptr, std::move(destination2), std::move(object_path2));
+        std::unique_ptr<sdbus::IProxy> test = sdbus::createProxy(
+            *m_conn_ptr, std::move(destination2), std::move(object_path2));
 
-        //sdbus::InterfaceName iface_name{"org.freedesktop.DBus.ObjectManager"};
-        //sdbus::SignalName signal_name{"InterfacesAdded"};
+        // sdbus::InterfaceName
+        // iface_name{"org.freedesktop.DBus.ObjectManager"}; sdbus::SignalName
+        // signal_name{"InterfacesAdded"};
         /*test->registerSignalHandler(
             iface_name, signal_name,
             [](sdbus::Signal signal) { std::cout << "test" << std::endl; });*/
 
-       test->uponSignal("InterfacesAdded")
-          .onInterface("org.freedesktop.DBus.ObjectManager")
-          .call([this](sdbus::ObjectPath path, std::map<std::string, std::map<std::string, sdbus::Variant>> dictionary) {
-            std::cout << "test" << std::endl;
-          });
+        test->uponSignal("InterfacesAdded")
+            .onInterface("org.freedesktop.DBus.ObjectManager")
+            .call(
+                [this](
+                    sdbus::ObjectPath path,
+                    std::map<std::string, std::map<std::string, sdbus::Variant>>
+                        dictionary) { std::cout << "test" << std::endl; });
 
-       //test->finishRegistration();
+        // test->finishRegistration();
     }
 
-    proxy_ptr->callMethod("StartDiscovery") 
-        .onInterface("org.bluez.Adapter1"); 
-    m_logger.verbose("Successfully started device discovery!");    
-    
+    proxy_ptr->callMethod("StartDiscovery").onInterface("org.bluez.Adapter1");
+    m_logger.verbose("Successfully started device discovery!");
+
     m_conn_ptr->enterEventLoopAsync();
     /*while(true) {
         m_conn_ptr->processPendingEvent();
