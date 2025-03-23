@@ -11,8 +11,6 @@ std::string Logger::_main_prefix = "[HC]";
 
 Logger::LogLevel Logger::_log_level = Logger::LogLevel::NONE;
 
-// test
-
 std::map<Logger::LogType, Logger::LogTypeInfo> Logger::_log_type_info_table = {
     {Logger::LogType::LOG, {"[LOG]", "37"}},
     {Logger::LogType::FATAL, {"[FATAL]", "91"}},
