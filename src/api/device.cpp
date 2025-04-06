@@ -38,7 +38,7 @@ void Device<StateType>::update_state(StateType new_state) {
 
     // m_logger.verbose("update_state(): Sending update message to server");
 
-    m_client.send("deviceStateChanged", state_update_msg);
+    m_client.send("stateChangedNotification", state_update_msg);
 }
 
 template <typename StateType> void Device<StateType>::register_events() {
@@ -50,10 +50,10 @@ template <typename StateType> void Device<StateType>::register_events() {
             ::sio::string_message::create(socket_id);
         reply_msg->get_map()["data"] = serialize_state();
 
-        m_client.send("deviceCheckStateReply", reply_msg);
+        m_client.send("stateResponse", reply_msg);
     };
 
-    m_client.register_event("deviceCheckStateRequest", cb1);
+    m_client.register_event("stateRequest", cb1);
 
     sio::Client::EventCallback cb2 = [this](::sio::message::ptr msg) {
         std::map<std::string, ::sio::message::ptr> data =
@@ -62,14 +62,14 @@ template <typename StateType> void Device<StateType>::register_events() {
         on_command_received(data);
     };
 
-    m_client.register_event("deviceCommand", cb2);
+    m_client.register_event("commandRequest", cb2);
 
     sio::Client::EventCallback cb3 = [this](::sio::message::ptr) {
         m_logger.log("Device has been deleted! Shutting down...");
         stop();
     };
 
-    m_client.register_event("deviceDeleted", cb3);
+    m_client.register_event("deviceDeletedNotification", cb3);
 }
 
 template <typename StateType>
@@ -77,10 +77,10 @@ template <typename StateType>
 Device<StateType>::create_handshake_msg(const std::string& device_id,
                                         const std::string& secret) {
     ::sio::message::ptr handshake_msg = ::sio::object_message::create();
-    handshake_msg->get_map()["type"] = ::sio::string_message::create("device");
-    handshake_msg->get_map()["deviceId"] =
-        ::sio::string_message::create(device_id);
-    handshake_msg->get_map()["key"] = ::sio::string_message::create(secret);
+    // handshake_msg->get_map()["type"] =
+    // ::sio::string_message::create("device");
+    handshake_msg->get_map()["id"] = ::sio::string_message::create(device_id);
+    handshake_msg->get_map()["secret"] = ::sio::string_message::create(secret);
 
     return handshake_msg;
 }
