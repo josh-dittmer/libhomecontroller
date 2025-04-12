@@ -18,24 +18,7 @@ void BlueZConnection::start() {
     std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
         *m_conn_ptr, std::move(destination), std::move(object_path));
 
-    // enable adapter
-
-    proxy_ptr->setProperty("Powered")
-        .onInterface("org.bluez.Adapter1")
-        .toValue(true);
-    m_logger.verbose("Successfully enabled Bluetooth adapter!");
-
-    /*proxy_ptr->uponSignal("InterfacesAddedd")
-        .onInterface("org.freedesktop.DBus.ObjectManager")
-        .call([](const sdbus::ObjectPath& object_path,
-                 const std::map<std::string,
-                                std::map<std::string, sdbus::Variant>>&
-                     interfaces) {
-            // m_logger.verbose("TESTING TESTING 123");
-            std::cout << "test" << std::endl;
-        });*/
-
-    {
+    /*{
         sdbus::ServiceName destination2{"org.bluez"};
         sdbus::ObjectPath object_path2{"/"};
         std::unique_ptr<sdbus::IProxy> test = sdbus::createProxy(
@@ -46,7 +29,7 @@ void BlueZConnection::start() {
         // signal_name{"InterfacesAdded"};
         /*test->registerSignalHandler(
             iface_name, signal_name,
-            [](sdbus::Signal signal) { std::cout << "test" << std::endl; });*/
+            [](sdbus::Signal signal) { std::cout << "test" << std::endl; });
 
         test->uponSignal("InterfacesAdded")
             .onInterface("org.freedesktop.DBus.ObjectManager")
@@ -57,12 +40,51 @@ void BlueZConnection::start() {
                         dictionary) { std::cout << "test" << std::endl; });
 
         // test->finishRegistration();
-    }
+    }*/
 
     proxy_ptr->callMethod("StartDiscovery").onInterface("org.bluez.Adapter1");
     m_logger.verbose("Successfully started device discovery!");
 
-    m_conn_ptr->enterEventLoopAsync();
+    {
+        sdbus::ServiceName destination{"org.freedesktop.DBus.Properties"};
+        sdbus::ObjectPath object_path{""};
+
+        std::unique_ptr<sdbus::IProxy> proxy_ptr = sdbus::createProxy(
+            *m_conn_ptr, std::move(destination), std::move(object_path));
+
+        sdbus::InterfaceName interface("org.freedesktop.DBus.Properties");
+        sdbus::SignalName signal("PropertiesChanged");
+
+        proxy_ptr->uponSignal(signal)
+            .onInterface(interface)
+            .call()
+
+                proxy_ptr->registerSignalHandler(
+                    interface, signal, [](sdbus::Signal signal) {
+                        std::cout << "test" << std::endl;
+                    });
+    }
+
+    // enable adapter
+
+    proxy_ptr->setProperty("Powered")
+        .onInterface("org.bluez.Adapter1")
+        .toValue(true);
+    m_logger.verbose("Successfully enabled Bluetooth adapter!");
+
+    /*proxy_ptr->uponSignal("InterfacesAdded")
+        .onInterface("org.freedesktop.DBus.ObjectManager")
+        .call([](const sdbus::ObjectPath& object_path,
+                 const std::map<std::string,
+                                std::map<std::string, sdbus::Variant>>&
+                     interfaces) {
+            // m_logger.verbose("TESTING TESTING 123");
+            std::cout << "test" << std::endl;
+        });*/
+
+    // m_conn_ptr->enterEventLoop();
+
+    // m_conn_ptr->enterEventLoopAsync();
     /*while(true) {
         m_conn_ptr->processPendingEvent();
     }*/
