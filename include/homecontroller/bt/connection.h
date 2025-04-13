@@ -9,22 +9,25 @@
 #include <queue>
 #include <thread>
 
+#define GATTLIB_LOG_LEVEL 3
 #include <gattlib.h>
 
 namespace hc {
 namespace bt {
 class Connection {
   public:
-    Connection(gattlib_adapter_t* adapter, const std::string& address)
+    Connection(std::mutex& mutex_ref, gattlib_adapter_t* adapter,
+               const std::string& address, const std::string& name)
         : m_logger("BTConnection"), m_adapter(adapter), m_address(address),
-          m_connection(nullptr), m_should_exit(false), m_running(false) {}
+          m_name(name), m_mutex_ref(mutex_ref), m_should_exit(false),
+          m_running(false) {}
     ~Connection() {}
 
     void start();
     void shutdown();
-    void await_finish_and_cleanup();
+    void await_finish();
 
-    void enqueue_char_write(int test);
+    void write_char(int test);
 
   private:
     static void on_device_connect(gattlib_adapter_t* adapter,
@@ -42,19 +45,15 @@ class Connection {
 
     gattlib_adapter_t* m_adapter;
     std::string m_address;
-
-    gattlib_connection_t* m_connection;
+    std::string m_name;
 
     std::thread m_loop_thread;
 
     std::queue<int> m_queue;
 
-    std::mutex m_mutex;
+    std::mutex& m_mutex_ref;
     std::condition_variable m_cv_finished;
     std::condition_variable m_cv_queue;
-    // std::condition_variable m_cv_connect;
-    // std::condition_variable m_cv_loop;
-    // std::condition_variable m_cv_disconnect;
 
     bool m_should_exit;
     bool m_running;

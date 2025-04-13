@@ -11,6 +11,7 @@
 #include <set>
 #include <thread>
 
+#define GATTLIB_LOG_LEVEL 3
 #include <gattlib.h>
 
 namespace hc {
@@ -18,12 +19,12 @@ namespace bt {
 
 class Scanner {
   public:
-    Scanner() : m_logger("BTScanner") {}
+    Scanner()
+        : m_logger("BTScanner"), m_scanning(false), m_should_exit(false) {}
     ~Scanner() {}
 
     bool start(const std::set<std::string>& addresses);
-    void shutdown();
-    void await_finish_and_cleanup();
+    void shutdown_sync();
 
     std::shared_ptr<Connection> get_connection(const std::string& address);
 
@@ -36,7 +37,7 @@ class Scanner {
                                      const char* name_cstr, void* data);
 
     void create_connection(gattlib_adapter_t* adapter,
-                           const std::string& address);
+                           const std::string& address, const std::string& name);
 
     util::Logger m_logger;
 
@@ -47,8 +48,13 @@ class Scanner {
     std::set<std::string> m_addresses;
     std::map<std::string, std::shared_ptr<Connection>> m_connections;
 
-    std::mutex m_mutex;
+    std::mutex m_mutex_adapter;
+    std::mutex m_shared_mutex_connection;
+
     std::condition_variable m_cv;
+
+    bool m_scanning;
+    bool m_should_exit;
 };
 
 } // namespace bt

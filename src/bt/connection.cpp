@@ -8,81 +8,67 @@ namespace hc {
 namespace bt {
 
 void Connection::start() {
-    m_logger.verbose("start(): Starting connection loop...");
-
     m_loop_thread = std::thread(&Connection::loop_thread, this);
+
+    m_logger.verbose("start(): [" + m_address + "] started");
 }
 
 void Connection::shutdown() {
-    if (m_running) {
-        gattlib_disconnect(m_connection, true);
-    }
+    std::unique_lock<std::mutex> lock(m_mutex_ref);
 
-    m_logger.verbose("shutdown(): Started for [" + m_address + "] ");
+    if (!m_should_exit && m_running) {
+        m_should_exit = true;
+        m_cv_queue.notify_all();
+
+        m_logger.verbose("shutdown(): [" + m_address + "] started");
+    }
 }
 
-void Connection::await_finish_and_cleanup() {
+void Connection::await_finish() {
+    m_logger.verbose("await_finish(): [" + m_address + "] awaiting exit");
+
     if (m_loop_thread.joinable()) {
         m_loop_thread.join();
     }
 
-    std::unique_lock<std::mutex> lock(m_mutex);
-
-    if (m_running) {
-        gattlib_disconnect(m_connection, true);
-    }
-
-    m_logger.verbose("shutdown(): [" + m_address + "] exited");
-    /*std::unique_lock<std::mutex> lock(m_mutex);
-
-    if (m_running) {
-        m_logger.verbose("shutdown(): Sending shutdown signal for [" +
-                         m_address + "]...");
-
-        gattlib_disconnect(m_connection, true);
-        m_cv_disconnect.wait(lock, [this] { return !m_running; });
-    }
-
-    m_logger.verbose("shutdown(): [" + m_address + "] exited");*/
+    m_logger.verbose("await_finish(): [" + m_address + "] exited");
 }
 
-void Connection::enqueue_char_write(int test) {
-    /*std::unique_lock<std::mutex> lock(m_mutex);
+void Connection::write_char(int test) {
+    std::lock_guard<std::mutex> lock(m_mutex_ref);
 
     if (!m_running) {
-        m_logger.verbose(
-            "enqueue_char_write(): Connection is closed, ignoring");
         return;
     }
 
     m_queue.push(test);
-    m_cv.notify_all();*/
+    m_cv_queue.notify_all();
 }
 
 void Connection::loop_thread() {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    std::unique_lock<std::mutex> lock(m_mutex_ref);
 
-    while (!m_should_exit) {
-        m_logger.verbose("start(): Connecting to [" + m_address + "]...");
+    m_logger.verbose("loop_thread(): [" + m_address + "] started");
 
-        int ret = gattlib_connect(m_adapter, m_address.c_str(),
-                                  GATTLIB_CONNECTION_OPTIONS_NONE,
-                                  Connection::on_device_connect, this);
+    m_running = true;
 
-        if (ret != GATTLIB_SUCCESS) {
-            m_logger.verbose("start(): gattlib_connect() failed with code: " +
-                             std::to_string(ret));
-            m_logger.error("Failed to connect to [" + m_address + "]");
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-            continue;
-        }
+    int ret = gattlib_connect(m_adapter, m_address.c_str(),
+                              GATTLIB_CONNECTION_OPTIONS_NONE,
+                              Connection::on_device_connect, this);
 
-        m_logger.verbose("start(): Waiting for connection to start...");
+    if (ret != GATTLIB_SUCCESS) {
+        m_logger.verbose("loop_thread(): gattlib_connect() failed with code: " +
+                         std::to_string(ret));
+        m_logger.error("[" + m_address + "]: connection failed");
 
-        m_cv_finished.wait(lock, [this] { return !m_running; });
-
-        m_logger.verbose("start(): [" + m_address + "] exited");
+        return;
     }
+
+    m_logger.verbose("loop_thread(): [" + m_address + "] awaiting finish");
+
+    m_cv_finished.wait(lock, [this] { return !m_running; });
+
+    m_logger.verbose("loop_thread(): [" + m_address + "] exited");
 }
 
 void Connection::on_device_connect(gattlib_adapter_t* adapter,
@@ -92,22 +78,19 @@ void Connection::on_device_connect(gattlib_adapter_t* adapter,
     Connection* instance = reinterpret_cast<Connection*>(data);
 
     if (error != GATTLIB_SUCCESS || dst_cstr == nullptr) {
-        instance->m_logger.verbose("on_device_connected(): Failed with code: " +
+        instance->m_logger.verbose("on_device_connect(): Failed with code: " +
                                    std::to_string(error));
         return;
     }
 
-    std::unique_lock<std::mutex> lock(instance->m_mutex);
-
-    instance->m_running = true;
+    std::unique_lock<std::mutex> lock(instance->m_mutex_ref);
 
     gattlib_register_on_disconnect(connection, Connection::on_device_disconnect,
                                    data);
 
     std::string address(dst_cstr);
 
-    instance->m_logger.verbose(
-        "on_device_connect(): Successfully connected to [" + address + "]");
+    instance->m_logger.log(instance->m_name + " @ [" + address + "] connected");
 
     instance->perform_discovery(connection);
 
@@ -116,9 +99,8 @@ void Connection::on_device_connect(gattlib_adapter_t* adapter,
             return !instance->m_queue.empty() || instance->m_should_exit;
         });
 
-        instance->m_logger.log(".");
-
         while (!instance->m_queue.empty()) {
+            std::cout << instance->m_queue.front() << std::endl;
             /*instance->m_logger.verbose(
                 "on_device_connect(): Queue item: " +
                 std::to_string(instance->m_queue.front()));*/
@@ -126,9 +108,11 @@ void Connection::on_device_connect(gattlib_adapter_t* adapter,
         }
     }
 
-    // std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    instance->m_logger.verbose("on_device_connect(): [" + instance->m_address +
+                               "] disconnecting...");
 
     instance->m_running = false;
+    gattlib_disconnect(connection, true);
 
     instance->m_cv_finished.notify_all();
 
@@ -140,10 +124,8 @@ void Connection::on_device_disconnect(gattlib_connection_t* connection,
                                       void* data) {
     Connection* instance = reinterpret_cast<Connection*>(data);
 
-    std::unique_lock<std::mutex> lock(instance->m_mutex);
-
-    instance->m_should_exit = true;
-    instance->m_cv_queue.notify_all();
+    std::thread t([&] { instance->shutdown(); });
+    t.detach();
 
     instance->m_logger.verbose("on_device_disconnect(): [" +
                                instance->m_address + "] disconnected");
@@ -177,7 +159,7 @@ void Connection::perform_discovery(gattlib_connection_t* connection) {
 
         m_logger.verbose(std::to_string(i) + ": service [" + uuid +
                          "]: start handle [" + start_handle +
-                         "],\tend handle [" + end_handle + "]");
+                         "], end handle [" + end_handle + "]");
     }
     free(services);
 
@@ -207,7 +189,7 @@ void Connection::perform_discovery(gattlib_connection_t* connection) {
             hc::util::str::to_hex(characteristics[i].value_handle, 2);
 
         m_logger.verbose(std::to_string(i) + ": characteristic [" + uuid +
-                         "]: properties [" + properties + "],\tvalue handle [" +
+                         "]: properties [" + properties + "] tvalue handle [" +
                          value_handle + "]");
     }
     free(characteristics);
