@@ -116,6 +116,8 @@ void Connection::on_device_connect(gattlib_adapter_t* adapter,
 
     instance->m_cv_finished.notify_all();
 
+    instance->m_logger.log(instance->m_name + " @ [" + address +
+                           "] disconnected");
     instance->m_logger.verbose("on_device_connect(): [" + instance->m_address +
                                "] exited");
 }
@@ -124,8 +126,9 @@ void Connection::on_device_disconnect(gattlib_connection_t* connection,
                                       void* data) {
     Connection* instance = reinterpret_cast<Connection*>(data);
 
-    std::thread t([&] { instance->shutdown(); });
-    t.detach();
+    if (instance->m_running) {
+        instance->shutdown();
+    }
 
     instance->m_logger.verbose("on_device_disconnect(): [" +
                                instance->m_address + "] disconnected");

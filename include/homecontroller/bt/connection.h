@@ -56,7 +56,7 @@ class Connection {
     std::condition_variable m_cv_queue;
 
     bool m_should_exit;
-    bool m_running;
+    std::atomic<bool> m_running;
 };
 } // namespace bt
 } // namespace hc
